@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Mikshin Tracker</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+      padding: 20px;
+    }
+    input, button {
+      padding: 6px;
+      margin: 4px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 15px;
+    }
+    th, td {
+      border: 1px solid #ccc;
+      padding: 6px;
+      text-align: center;
+    }
+    th {
+      background: #f2f2f2;
+    }
+  </style>
+</head>
+<body>
+
+<h2>Mikshin FIFO Tracker</h2>
+
+<input id="date" placeholder="YYYY-MM-DD">
+<input id="hamr" type="number" placeholder="Hamr">
+<input id="opketgan" type="number" placeholder="Opketgan">
+<button onclick="addRow()">Add</button>
+
+<table>
+  <thead>
+    <tr>
+      <th>Date</th>
+      <th>Hamr</th>
+      <th>Mikshin Total</th>
+      <th>Opketgan</th>
+      <th>Mikshin Remaining</th>
+    </tr>
+  </thead>
+  <tbody id="tableBody"></tbody>
+</table>
+
+<script>
+let records = [];
+
+function applyOpketgan(amount) {
+  for (let r of records) {
+    if (amount <= 0) break;
+    if (r.remaining > 0) {
+      let taken = Math.min(r.remaining, amount);
+      r.remaining -= taken;
+      amount -= taken;
+    }
+  }
+}
+
+function addRow() {
+  const date = document.getElementById("date").value;
+  const hamr = parseInt(document.getElementById("hamr").value);
+  const opketgan = parseInt(document.getElementById("opketgan").value);
+
+  if (!date || isNaN(hamr) || isNaN(opketgan)) return;
+
+  const mikshin = hamr * 4;
+
+  records.push({
+    date: date,
+    hamr: hamr,
+    mikshin: mikshin,
+    remaining: mikshin,
+    opketgan: opketgan
+  });
+
+  applyOpketgan(opketgan);
+  render();
+}
+
+function render() {
+  const body = document.getElementById("tableBody");
+  body.innerHTML = "";
+
+  for (let r of records) {
+    body.innerHTML += `
+      <tr>
+        <td>${r.date}</td>
+        <td>${r.hamr}</td>
+        <td>${r.mikshin}</td>
+        <td>${r.opketgan}</td>
+        <td>${r.remaining}</td>
+      </tr>
+    `;
+  }
+}
+</script>
+
+</body>
+</html>
