@@ -1,86 +1,102 @@
 <!DOCTYPE html>
-<html>
+<html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <title>Mikshin Tracker</title>
+  <title>オニヤンマ生地</title>
   <style>
     body {
-      font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+      font-family: Arial, sans-serif;
       padding: 20px;
     }
-    input, button {
-      padding: 6px;
-      margin: 4px;
-    }
     table {
-      width: 100%;
       border-collapse: collapse;
-      margin-top: 15px;
+      width: 100%;
+      margin-top: 20px;
     }
     th, td {
       border: 1px solid #ccc;
-      padding: 6px;
+      padding: 8px;
       text-align: center;
     }
     th {
       background: #f2f2f2;
     }
+    input {
+      padding: 5px;
+      margin-right: 5px;
+    }
+    button {
+      padding: 6px 10px;
+    }
   </style>
 </head>
 <body>
 
-<h2>Mikshin FIFO Tracker</h2>
+<h2>オニヤンマ生地（FIFO 管理）</h2>
 
-<input id="date" placeholder="YYYY-MM-DD">
-<input id="hamr" type="number" placeholder="Hamr">
-<input id="opketgan" type="number" placeholder="Opketgan">
-<button onclick="addRow()">Add</button>
+<!-- INPUT AREA -->
+<input id="sana" placeholder="sana（例: 2026-01-18）">
+<input id="mixing" type="number" placeholder="ミキシング">
+<input id="delivery" type="number" placeholder="搬入">
+<button onclick="addEntry()">追加</button>
 
+<!-- TABLE -->
 <table>
   <thead>
     <tr>
-      <th>Date</th>
-      <th>Hamr</th>
-      <th>Mikshin Total</th>
-      <th>Opketgan</th>
-      <th>Mikshin Remaining</th>
+      <th>sana</th>
+      <th>ミキシング</th>
+      <th>生地（×4）</th>
+      <th>搬入</th>
+      <th>のこり</th>
     </tr>
   </thead>
   <tbody id="tableBody"></tbody>
 </table>
 
+<button onclick="clearAll()">全データ削除</button>
+
 <script>
-let records = [];
+let data = JSON.parse(localStorage.getItem("oniyanmaKijiData")) || [];
 
-function applyOpketgan(amount) {
-  for (let r of records) {
-    if (amount <= 0) break;
-    if (r.remaining > 0) {
-      let taken = Math.min(r.remaining, amount);
-      r.remaining -= taken;
-      amount -= taken;
-    }
+function addEntry() {
+  const sana = document.getElementById("sana").value;
+  const mixing = Number(document.getElementById("mixing").value);
+  const delivery = Number(document.getElementById("delivery").value || 0);
+
+  if (!sana || mixing <= 0) {
+    alert("sana と ミキシング を入力してください");
+    return;
   }
-}
 
-function addRow() {
-  const date = document.getElementById("date").value;
-  const hamr = parseInt(document.getElementById("hamr").value);
-  const opketgan = parseInt(document.getElementById("opketgan").value);
+  let kiji = mixing * 4;
+  let remainingDelivery = delivery;
 
-  if (!date || isNaN(hamr) || isNaN(opketgan)) return;
+  // FIFO: subtract 搬入 from oldest 生地 first
+  for (let row of data) {
+    if (remainingDelivery <= 0) break;
+    let used = Math.min(row.remaining, remainingDelivery);
+    row.remaining -= used;
+    remainingDelivery -= used;
+  }
 
-  const mikshin = hamr * 4;
+  let remainingToday = kiji - remainingDelivery;
+  if (remainingToday < 0) remainingToday = 0;
 
-  records.push({
-    date: date,
-    hamr: hamr,
-    mikshin: mikshin,
-    remaining: mikshin,
-    opketgan: opketgan
+  data.push({
+    sana: sana,
+    mixing: mixing,
+    kiji: kiji,
+    delivery: delivery,
+    remaining: remainingToday
   });
 
-  applyOpketgan(opketgan);
+  saveAndRender();
+  clearInputs();
+}
+
+function saveAndRender() {
+  localStorage.setItem("oniyanmaKijiData", JSON.stringify(data));
   render();
 }
 
@@ -88,18 +104,33 @@ function render() {
   const body = document.getElementById("tableBody");
   body.innerHTML = "";
 
-  for (let r of records) {
+  data.forEach(row => {
     body.innerHTML += `
       <tr>
-        <td>${r.date}</td>
-        <td>${r.hamr}</td>
-        <td>${r.mikshin}</td>
-        <td>${r.opketgan}</td>
-        <td>${r.remaining}</td>
+        <td>${row.sana}</td>
+        <td>${row.mixing}</td>
+        <td>${row.kiji}</td>
+        <td>${row.delivery}</td>
+        <td>${row.remaining}</td>
       </tr>
     `;
+  });
+}
+
+function clearInputs() {
+  document.getElementById("mixing").value = "";
+  document.getElementById("delivery").value = "";
+}
+
+function clearAll() {
+  if (confirm("すべてのデータを削除しますか？")) {
+    data = [];
+    localStorage.removeItem("oniyanmaKijiData");
+    render();
   }
 }
+
+render();
 </script>
 
 </body>
